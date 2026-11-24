@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMI & Calorie Calculator</title>
+<style>
+  :root {
+    --bg: #f3f5f7; --card: #ffffff; --ink: #14202b; --muted: #5d6b78;
+    --line: #d9e0e6; --accent: #0b5cad; --accent-ink: #ffffff; --soft: #e8f0f9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10161c; --card: #18212a; --ink: #e8eef3; --muted: #9aa8b5;
+      --line: #2b3844; --accent: #6cb0f2; --accent-ink: #0c1218; --soft: #1d2b3a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 { font: 600 1.6rem/1.2 Georgia, "Times New Roman", serif; margin: 8px 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs button {
+    flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--ink); font: inherit; cursor: pointer;
+  }
+  .tabs button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .fields { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+  .fields .wide { grid-column: 1 / -1; }
+  @media (max-width: 460px) { .fields { grid-template-columns: 1fr; } }
+  label { display: block; font-size: .9rem; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 10px; font: inherit; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .pair { display: flex; gap: 8px; }
+  .result { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .big { font: 600 3.4rem/1 Georgia, "Times New Roman", serif; color: var(--accent); }
+  .big small { font-size: 1.1rem; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .line { font-size: 1.1rem; margin: 8px 0 14px; }
+  .scale { position: relative; height: 12px; border-radius: 6px; margin: 18px 0 6px;
+    background: linear-gradient(to right, #6aa5d8 0 14%, #5fb47a 14% 40%, #e3b341 40% 60%, #d9694f 60% 100%); }
+  .marker { position: absolute; top: -5px; width: 4px; height: 22px; background: var(--ink);
+    border-radius: 2px; transform: translateX(-2px); }
+  .scale-labels { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 0; }
+  .stats div { background: var(--soft); border-radius: 8px; padding: 10px 12px; }
+  .stats dt { font-size: .8rem; color: var(--muted); }
+  .stats dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 1rem; margin: 22px 0 8px; }
+  .note { margin-top: 14px; font-size: .9rem; }
+  .hint { color: var(--muted); }
+  .error { color: #b3261e; }
+  @media (prefers-color-scheme: dark) { .error { color: #f2b8b5; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>BMI & Calorie Calculator</h1>
+  <p class="sub">For adults 18 and over. Estimates only, not medical advice.</p>
+
+  <div class="tabs" role="group" aria-label="Units">
+    <button id="u-metric" aria-pressed="true">Metric (cm, kg)</button>
+    <button id="u-imperial" aria-pressed="false">Imperial (ft, lb)</button>
+  </div>
+
+  <section>
+    <div class="fields">
+      <div><label for="sex">Sex</label>
+        <select id="sex"><option value="female">Female</option><option value="male">Male</option></select></div>
+      <div><label for="age">Age (years)</label><input type="number" id="age" min="18" max="120" inputmode="numeric"></div>
+
+      <div id="h-metric"><label for="cm">Height (cm)</label><input type="number" id="cm" min="100" max="250" inputmode="decimal"></div>
+      <div id="h-imperial" hidden><label for="ft">Height (ft / in)</label>
+        <div class="pair"><input type="number" id="ft" min="3" max="8" inputmode="numeric" placeholder="ft" aria-label="Feet">
+        <input type="number" id="inch" min="0" max="11" inputmode="numeric" placeholder="in" aria-label="Inches"></div></div>
+
+      <div><label for="wt" id="wt-label">Weight (kg)</label><input type="number" id="wt" min="1" inputmode="decimal"></div>
+
+      <div class="wide"><label for="activity">Activity level</label>
+        <select id="activity">
+          <option value="1.2">Sedentary: little or no exercise</option>
+          <option value="1.375">Light: exercise 1–3 days a week</option>
+          <option value="1.55">Moderate: exercise 3–5 days a week</option>
+          <option value="1.725">Active: hard exercise 6–7 days a week</option>
+          <option value="1.9">Very active: physical job or training twice a day</option>
+        </select></div>
+    </div>
+    <div class="result" id="out" aria-live="polite"><span class="hint">Fill in the fields above to see your results.</span></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = n => Math.round(n).toLocaleString();
+let unit = 'metric';
+
+function setUnit(u) {
+  unit = u;
+  const m = u === 'metric';
+  $('u-metric').setAttribute('aria-pressed', m);
+  $('u-imperial').setAttribute('aria-pressed', !m);
+  $('h-metric').hidden = !m;
+  $('h-imperial').hidden = m;
+  $('wt-label').textContent = m ? 'Weight (kg)' : 'Weight (lb)';
+  $('wt').value = ''; $('cm').value = ''; $('ft').value = ''; $('inch').value = '';
+  calc();
+}
+
+function bmiCategory(bmi) {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25) return 'Healthy weight';
+  if (bmi < 30) return 'Overweight';
+  return 'Obesity';
+}
+
+function calc() {
+  const out = $('out');
+  const age = parseFloat($('age').value);
+  const wtIn = parseFloat($('wt').value);
+  let heightCm;
+  if (unit === 'metric') heightCm = parseFloat($('cm').value);
+  else heightCm = ((parseFloat($('ft').value) || 0) * 12 + (parseFloat($('inch').value) || 0)) * 2.54;
+  const weightKg = unit === 'metric' ? wtIn : wtIn * 0.45359237;
+
+  if (!age || !wtIn || !heightCm) {
+    out.innerHTML = '<span class="hint">Fill in the fields above to see your results.</span>';
+    return;
+  }
+  if (age < 18 || age > 120) { out.innerHTML = '<span class="error">This calculator is for adults aged 18 to 120.</span>'; return; }
+  if (heightCm < 100 || heightCm > 250) { out.innerHTML = '<span class="error">Enter a height between 100 and 250 cm (3 ft 4 in to 8 ft 2 in).</span>'; return; }
+  if (weightKg < 25 || weightKg > 300) { out.innerHTML = '<span class="error">Enter a weight between 25 and 300 kg (55 to 660 lb).</span>'; return; }
+
+  const h = heightCm / 100;
+  const bmi = weightKg / (h * h);
+  const category = bmiCategory(bmi);
+  const pos = Math.min(100, Math.max(0, ((bmi - 15) / 25) * 100)); // scale runs from BMI 15 to 40
+
+  // Healthy weight range for this height (BMI 18.5 to 24.9)
+  let lo = 18.5 * h * h, hi = 24.9 * h * h, rangeUnit = 'kg';
+  if (unit === 'imperial') { lo /= 0.45359237; hi /= 0.45359237; rangeUnit = 'lb'; }
+
+  // Mifflin-St Jeor equation
+  const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + ($('sex').value === 'male' ? 5 : -161);
+  const tdee = bmr * parseFloat($('activity').value);
+  const floor = $('sex').value === 'male' ? 1500 : 1200;
+  const target = delta => Math.max(floor, tdee + delta);
+  const belowFloor = tdee - 500 < floor;
+
+  out.innerHTML = `
+    <div class="big">${bmi.toFixed(1)}<small>BMI</small></div>
+    <p class="line"><strong>${category}</strong></p>
+    <div class="scale"><div class="marker" style="left:${pos}%"></div></div>
+    <div class="scale-labels"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
+    <p>A healthy weight for your height is about <strong>${num(lo)}–${num(hi)} ${rangeUnit}</strong>.</p>
+
+    <h2>Daily calories</h2>
+    <dl class="stats">
+      <div><dt>Resting (BMR)</dt><dd>${num(bmr)} kcal</dd></div>
+      <div><dt>Maintain weight</dt><dd>${num(tdee)} kcal</dd></div>
+      <div><dt>Lose slowly (−250)</dt><dd>${num(target(-250))} kcal</dd></div>
+      <div><dt>Lose (−500)</dt><dd>${num(target(-500))} kcal</dd></div>
+      <div><dt>Gain slowly (+250)</dt><dd>${num(tdee + 250)} kcal</dd></div>
+    </dl>
+    ${belowFloor ? `<p class="note hint">Loss targets are not shown below ${num(floor)} kcal a day. Eating less than that needs a doctor’s or dietitian’s supervision.</p>` : ''}
+    <p class="note hint">BMI doesn’t separate muscle from fat, so it can misread athletic or very muscular people. Calorie numbers come from the Mifflin-St Jeor equation and are estimates. For personal advice, talk to a doctor or registered dietitian.</p>`;
+}
+
+$('u-metric').addEventListener('click', () => setUnit('metric'));
+$('u-imperial').addEventListener('click', () => setUnit('imperial'));
+['sex', 'age', 'cm', 'ft', 'inch', 'wt', 'activity'].forEach(id => $(id).addEventListener('input', calc));
+</script>
+</body>
+</html>
